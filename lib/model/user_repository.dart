@@ -16,11 +16,15 @@ class UserRepository with ChangeNotifier {
   UserRepository.instance() : _auth = FirebaseAuth.instance {
     _auth.authStateChanges().listen(_onAuthStateChanged);
     _saved = new Set<String>();
+    _status = Status.Unauthenticated;
   }
 
   Status get status => _status;
+
   User get user => _user;
+
   String get email => _email;
+
   Set<String> get saved => _saved;
 
   Future<bool> signIn(String email, String password) async {
@@ -29,6 +33,12 @@ class UserRepository with ChangeNotifier {
       notifyListeners();
       await _auth.signInWithEmailAndPassword(email: email, password: password);
       _email = email;
+      DocumentSnapshot ds = await databaseReference.collection("users").doc(
+          _email).get();
+      if (!ds.exists) {
+        databaseReference.collection("users").doc(_email).set(
+            {'wordPairs': new List<String>()});
+      }
       updateWithDb();
       return true;
     } catch (e) {
@@ -60,22 +70,26 @@ class UserRepository with ChangeNotifier {
   Future addFav(String pair) async {
     _saved.add(pair);
     if (status == Status.Authenticated) {
-      await databaseReference.collection("users").doc(_email).get().then((snapshot) async {
+      await databaseReference.collection("users").doc(_email).get().then((
+          snapshot) async {
         var wordPairs = snapshot.data()['wordPairs'];
         wordPairs.add(pair);
-        await databaseReference.collection("users").doc(_email).update({'wordPairs': wordPairs.toList()});
+        await databaseReference.collection("users").doc(_email).update(
+            {'wordPairs': wordPairs.toList()});
       });
     }
     notifyListeners();
- }
+  }
 
   Future removeFav(String pair) async {
     _saved.remove(pair);
     if (status == Status.Authenticated) {
-      databaseReference.collection("users").doc(_email).get().then((snapshot) async {
+      databaseReference.collection("users").doc(_email).get().then((
+          snapshot) async {
         var wordPairs = snapshot.data()['wordPairs'];
         wordPairs.remove(pair);
-        await databaseReference.collection("users").doc(_email).update({'wordPairs': wordPairs.toList()});
+        await databaseReference.collection("users").doc(_email).update(
+            {'wordPairs': wordPairs.toList()});
       });
     }
     notifyListeners();
@@ -83,11 +97,11 @@ class UserRepository with ChangeNotifier {
 
   Future updateWithDb() async {
     try {
-      await databaseReference.collection("users").doc(_email).get().then((snapshot) {
+      await databaseReference.collection("users").doc(_email).get().then((
+          snapshot) {
         List<String> wordPairs = List.from(snapshot.data()['wordPairs']);
         _saved.addAll(wordPairs.map((e) => e.toString()));
       });
-    } catch (e) { }
+    } catch (e) {}
   }
 }
-
