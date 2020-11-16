@@ -1,17 +1,22 @@
 # hello_me
 
-A new Flutter application.
+###Dry Questions###
 
-## Getting Started
+Question 1:
+The controller of snapping sheet is implemented by the class SnappingPosition, which allows the
+programmer to control the following operations of snapping:
+* Snapping positions: where the snapping object initial position is
+* Snapping Factor: Which % of the screen can the snapping sheet take
+* Animation of snapping and its duration
 
-This project is a starting point for a Flutter application.
+####################################################################################################
 
-A few resources to get you started if this is your first Flutter project:
+Question 2:
+The param is:
+final Curve snappingCurve;
+of SnappingPositions, gives the programmer various curves for the snapping animation to the relevant
+position
 
-- [Lab: Write your first Flutter app](https://flutter.dev/docs/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://flutter.dev/docs/cookbook)
+####################################################################################################
 
-For help getting started with Flutter, view our
-[online documentation](https://flutter.dev/docs), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
-"# android-project-flutter-assignment" 
+Question 3:

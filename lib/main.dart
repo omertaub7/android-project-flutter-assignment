@@ -1,8 +1,12 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'dart:io';
 import 'package:english_words/english_words.dart';
 import 'package:hello_me/model/user_repository.dart';
 import 'package:provider/provider.dart';
+import 'package:snapping_sheet/snapping_sheet.dart';
+import 'package:file_picker/file_picker.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -56,6 +60,7 @@ class _RandomWordsState extends State<RandomWords> {
   @override
   final List<WordPair> _suggestions = <WordPair>[];
   final _biggerFont = TextStyle(fontSize: 18.0);
+  var _controller = SnappingSheetController();
   void _pushSaved() {
     Navigator.of(context).push(
      MaterialPageRoute<void> (
@@ -103,32 +108,130 @@ class _RandomWordsState extends State<RandomWords> {
   }
 
   Widget build(BuildContext context) {
-    UserRepository loginState = Provider.of(context, listen:false);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Startup Name Generator'),
-        actions: [
-          IconButton(icon: Icon(Icons.favorite), onPressed: _pushSaved),
-          Consumer<UserRepository>(
-            builder: (context, user, _) {
-              return IconButton(
-                  icon: (loginState.status == Status.Authenticated) ? Icon(Icons.exit_to_app) : Icon(Icons.login),
-                  onPressed: () {
-                    if (loginState.status == Status.Authenticated) {
-                      _pushLogout();
-                    } else {
-                      _pushLogin();
-                    }
-                  }
-              );
-            }
+    return Consumer<UserRepository> (
+      builder: (context, user, _) {
+        return Scaffold(
+            appBar: AppBar(
+            title: Text('Startup Name Generator'), actions: [
+            IconButton(icon: Icon(Icons.favorite), onPressed: _pushSaved),
+            IconButton( icon: (user.status == Status.Authenticated) ? Icon(Icons.exit_to_app) : Icon(Icons.login),
+              onPressed: () {
+                if (user.status == Status.Authenticated) {
+                  _pushLogout();
+                }  else {
+                _pushLogin();
+                }})
+            ],
           ),
-        ],
-      ),
-      body: _buildSuggestions(),
+          body: (user.status != Status.Authenticated) ? _buildSuggestions() :
+          _buildSnappingSheet()
+        );
+      }
     );
   }
 
+  Widget _buildSnappingSheet() {
+    var user = Provider.of<UserRepository>(context);
+    return SnappingSheet(
+        sheetAbove: SnappingSheetContent(
+          child: _buildSuggestions(),
+        ),
+        snappingSheetController: _controller,
+        snapPositions: [
+          const SnapPosition(
+              positionPixel: 0.0,
+              snappingCurve: Curves.elasticOut,
+              snappingDuration: Duration(milliseconds: 750)
+          ),
+          const SnapPosition(
+              positionFactor: 0.2,
+              snappingCurve: Curves.ease,
+              snappingDuration: Duration(milliseconds: 500)
+          ),
+        ],
+        grabbing: Container(
+          color: Colors.grey,
+          child: InkWell(
+              child: ListTile(
+                title: user.email!=null ? Text("Welcome back, ${user.email}", style: TextStyle(fontFamily: 'Montserrat', fontSize: 14.0)) : Text(""),
+                trailing: Icon(Icons.arrow_drop_up_outlined),
+              ),
+              onTap: () {
+                if(_controller.snapPositions.last != _controller.currentSnapPosition) {
+                  _controller.snapToPosition(_controller.snapPositions.last);
+                }
+                else {
+                  _controller.snapToPosition(_controller.snapPositions.first);
+                }
+              }
+          ),
+        ),
+        sheetBelow: SnappingSheetContent(
+            heightBehavior: SnappingSheetHeight.fit(),
+            child: Container(
+              color:Colors.white,
+              child: SingleChildScrollView(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Padding(
+                        padding: EdgeInsets.all(5),
+                      ),
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Padding(
+                            padding: EdgeInsets.all(10),
+                          ),
+                          user.imageURL == null ? CircleAvatar(
+                            radius: 45,
+                            backgroundColor: Colors.blueAccent,
+                            child: Icon(Icons.camera_alt),
+                          ) : CircleAvatar(
+                            radius: 45,
+                            backgroundImage: NetworkImage(user.imageURL),
+                          ),
+                        ],
+                      ),
+                      Padding(
+                        padding: EdgeInsets.all(10),
+                      ),
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(user.email != null ? user.email : ""),
+                          Padding(
+                            padding: EdgeInsets.all(8),
+                          ),
+                          MaterialButton(
+                            child: Text("Change Avatar", style: TextStyle(fontFamily: 'Montserrat', fontSize: 14.0)),
+                            color: Colors.green,
+                            onPressed: () async {
+                              FilePickerResult result = await FilePicker.platform
+                                  .pickFiles(type: FileType.image);
+                              File file;
+                              if (result != null) {
+                                file = File(result.files.single.path);
+                                setState(() {
+                                  user.imageURL = null;
+                                });
+                                user.imageURL = await user.setProfilePicture(file, user.uid + ".png");
+                                setState(() {});
+                              }
+                            } ,
+                          )
+                        ],
+
+                      )
+                    ],
+                  )
+              ),
+            )
+        )
+    );
+  }
   Widget _buildSuggestions() {
     return ListView.builder(
         padding: const EdgeInsets.all(16),
@@ -198,7 +301,9 @@ class _LoginPageState extends State<_LoginPage> {
   TextStyle style = TextStyle(fontFamily: 'Montserrat', fontSize: 20.0);
   TextEditingController _email;
   TextEditingController _password;
+  TextEditingController _password_confirm;
   final _formKey = GlobalKey<FormState>();
+  final _validateKey = GlobalKey<FormState>();
   final _key = GlobalKey<ScaffoldState>();
 
   @override
@@ -222,6 +327,15 @@ class _LoginPageState extends State<_LoginPage> {
           child: ListView(
             shrinkWrap: true,
             children: <Widget>[
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(
+                    "Welcome to Startup Name Generator, please log in below",
+                  style: style.copyWith(
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold),
+                ),
+              ),
               Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: TextFormField(
@@ -272,6 +386,79 @@ class _LoginPageState extends State<_LoginPage> {
                     },
                     child: Text(
                       "Sign In",
+                      style: style.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: SizedBox(height: 16.0,),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Material(
+                  elevation: 5.0,
+                  borderRadius: BorderRadius.circular(30.0),
+                  color: Colors.green,
+                  child: MaterialButton(
+                    onPressed: () async {
+                      showModalBottomSheet<void>(
+                        context: context, isScrollControlled: true,
+                        builder: (context) {
+                          return Container(
+                            padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+                            color: Colors.white,
+                            child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.min,
+                                children: <Widget>[
+                                  const Text('Please confirm your password below'),
+                                  Form(
+                                    key: _validateKey,
+                                    child:Column(
+                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                      children: [
+                                        TextFormField(
+                                          controller: _password_confirm,
+                                          validator: (value) => value.isEmpty || value ==_password.text ? null:"Passwords must match!",
+                                          style: style,
+                                          decoration: InputDecoration(
+                                              prefixIcon: Icon(Icons.lock),
+                                              labelText: "Password",
+                                              border: OutlineInputBorder()),
+                                          obscureText: true,
+                                        ),
+                                        ElevatedButton(
+                                            child: const Text('Confirm'),
+                                            onPressed: () async
+                                            {
+                                              _validateKey.currentState.validate();
+                                              if (_password != _password_confirm) {
+                                                return;
+                                              }
+                                              if (!await user.addNewUser(_email.text, _password.text)) {
+                                                _key.currentState.showSnackBar(SnackBar(
+                                                  content: Text("A server error has occurred!"),));
+                                                return;
+                                              }
+                                              Navigator.of(context).pop();
+                                            }
+                                        )
+                                      ],
+                                    ),
+                                  )
+
+                                ],
+                              ),
+                          );
+                        }
+                      );
+                    },
+                    child: Text(
+                      "New User? Click to sign up",
                       style: style.copyWith(
                           color: Colors.white,
                           fontWeight: FontWeight.bold),
