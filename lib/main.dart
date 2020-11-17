@@ -108,9 +108,11 @@ class _RandomWordsState extends State<RandomWords> {
   }
 
   Widget build(BuildContext context) {
+    var _key = GlobalKey<ScaffoldState>();
     return Consumer<UserRepository> (
       builder: (context, user, _) {
         return Scaffold(
+          key: _key,
             appBar: AppBar(
             title: Text('Startup Name Generator'), actions: [
             IconButton(icon: Icon(Icons.favorite), onPressed: _pushSaved),
@@ -124,13 +126,13 @@ class _RandomWordsState extends State<RandomWords> {
             ],
           ),
           body: (user.status != Status.Authenticated) ? _buildSuggestions() :
-          _buildSnappingSheet()
+          _buildSnappingSheet(_key)
         );
       }
     );
   }
 
-  Widget _buildSnappingSheet() {
+  Widget _buildSnappingSheet(GlobalKey<ScaffoldState> key) {
     var user = Provider.of<UserRepository>(context);
     return SnappingSheet(
         sheetAbove: SnappingSheetContent(
@@ -219,6 +221,9 @@ class _RandomWordsState extends State<RandomWords> {
                                 });
                                 user.imageURL = await user.setProfilePicture(file, user.uid + ".png");
                                 setState(() {});
+                              } else {
+                                key.currentState.showSnackBar(SnackBar(
+                                  content: Text("No image selected"),));
                               }
                             } ,
                           )
