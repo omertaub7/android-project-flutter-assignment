@@ -404,7 +404,7 @@ class _LoginPageState extends State<_LoginPage> {
                   borderRadius: BorderRadius.circular(30.0),
                   color: Colors.green,
                   child: MaterialButton(
-                    onPressed: () async {
+                    onPressed: () {
                       showModalBottomSheet<void>(
                         context: context, isScrollControlled: true,
                         builder: (context) {
@@ -435,10 +435,7 @@ class _LoginPageState extends State<_LoginPage> {
                                             child: const Text('Confirm'),
                                             onPressed: () async
                                             {
-                                              _validateKey.currentState.validate();
-                                              if (_password != _password_confirm) {
-                                                return;
-                                              }
+                                              if(!_validateKey.currentState.validate()) return;
                                               if (!await user.addNewUser(_email.text, _password.text)) {
                                                 _key.currentState.showSnackBar(SnackBar(
                                                   content: Text("A server error has occurred!"),));
@@ -455,7 +452,7 @@ class _LoginPageState extends State<_LoginPage> {
                               ),
                           );
                         }
-                      );
+                      ).then((value) => Navigator.of(context).pop());
                     },
                     child: Text(
                       "New User? Click to sign up",
