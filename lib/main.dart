@@ -74,8 +74,8 @@ class _RandomWordsState extends State<RandomWords> {
                    pair,
                    style: _biggerFont,
                  ),
-                   trailing: Icon(Icons.delete_outline, color: Colors.red),
-                   onTap: () async => user.removeFav(pair),
+                   trailing: IconButton(icon: Icon(Icons.delete_outline), color: Colors.red,
+                       onPressed: () async => user.removeFav(pair),),
                );});
              final divided = ListTile.divideTiles(
                context: context,
@@ -305,12 +305,14 @@ class _LoginPageState extends State<_LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _validateKey = GlobalKey<FormState>();
   final _key = GlobalKey<ScaffoldState>();
+  bool registered;
 
   @override
   void initState() {
     super.initState();
     _email = TextEditingController(text: "");
     _password = TextEditingController(text: "");
+    registered = false;
   }
 
   @override
@@ -441,6 +443,7 @@ class _LoginPageState extends State<_LoginPage> {
                                                   content: Text("A server error has occurred!"),));
                                                 return;
                                               }
+                                              registered = true;
                                               Navigator.of(context).pop();
                                             }
                                         )
@@ -452,7 +455,11 @@ class _LoginPageState extends State<_LoginPage> {
                               ),
                           );
                         }
-                      ).then((value) => Navigator.of(context).pop());
+                      ).then((value) {
+                        if (registered) {
+                          Navigator.of(context).pop();
+                            }
+                    } );
                     },
                     child: Text(
                       "New User? Click to sign up",
