@@ -3,11 +3,9 @@
 ###Dry Questions###
 
 Question 1:
-The controller of snapping sheet is implemented by the class SnappingPosition, which allows the
-programmer to control the following operations of snapping:
-* Snapping positions: where the snapping object initial position is
-* Snapping Factor: Which % of the screen can the snapping sheet take
-* Animation of snapping and its duration
+The controller class for snapping sheet is called SnappingSheetController. When SnappingSheetController
+is set as the controller of a snapping sheet, it recieves the list of SnappingPositions, and allows
+the user to query the current snap position, and to snap the snapping sheet to another position.
 
 ####################################################################################################
 
